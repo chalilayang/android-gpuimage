@@ -41,7 +41,7 @@ import java.util.Queue;
 import static jp.co.cyberagent.android.gpuimage.util.TextureRotationUtil.TEXTURE_NO_ROTATION;
 
 @TargetApi(11)
-public class GPUImageRenderer implements Renderer, PreviewCallback {
+public class GPUImageRenderer implements Renderer, PreviewCallback, GPUImageFilter.FilterCallback {
     public static final int NO_IMAGE = -1;
     static final float CUBE[] = {
             -1.0f, -1.0f,
@@ -79,6 +79,7 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
 
     public GPUImageRenderer(final GPUImageFilter filter) {
         mFilter = filter;
+        mFilter.setFilterCallback(GPUImageRenderer.this);
         mRunOnDraw = new LinkedList<Runnable>();
         mRunOnDrawEnd = new LinkedList<Runnable>();
 
@@ -145,12 +146,17 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
         }
     }
 
+    private byte[] tempBytes;
     @Override
     public void onPreviewFrame(final byte[] data, final Camera camera) {
         final Size previewSize = camera.getParameters().getPreviewSize();
         if (mGLRgbBuffer == null) {
             mGLRgbBuffer = IntBuffer.allocate(previewSize.width * previewSize.height);
         }
+        if (tempBytes == null) {
+            tempBytes = new byte[data.length];
+        }
+        System.arraycopy(data, 0, tempBytes, 0, data.length);
         if (mRunOnDraw.isEmpty()) {
             runOnDraw(new Runnable() {
                 @Override
@@ -195,6 +201,7 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
             public void run() {
                 final GPUImageFilter oldFilter = mFilter;
                 mFilter = filter;
+                mFilter.setFilterCallback(GPUImageRenderer.this);
                 if (oldFilter != null) {
                     oldFilter.destroy();
                 }
@@ -353,5 +360,20 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
         synchronized (mRunOnDrawEnd) {
             mRunOnDrawEnd.add(runnable);
         }
+    }
+
+    @Override
+    public IntBuffer getRGBBuffer() {
+        return mGLRgbBuffer;
+    }
+
+    @Override
+    public int[] getImageSize() {
+        return new int[]{mImageWidth, mImageHeight};
+    }
+
+    @Override
+    public byte[] getYUV() {
+        return tempBytes;
     }
 }

@@ -25,7 +25,13 @@ import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.util.Log;
 
+import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
+import static android.opengl.GLES20.GL_FRAMEBUFFER;
+import static android.opengl.GLES20.GL_TEXTURE_2D;
+import static android.opengl.GLES30.GL_READ_FRAMEBUFFER;
+
 public class OpenGlUtils {
+    private static final String TAG = OpenGlUtils.class.getSimpleName();
     public static final int NO_TEXTURE = -1;
 
     public static int loadTexture(final Bitmap img, final int usedTexId) {
@@ -36,20 +42,20 @@ public class OpenGlUtils {
         int textures[] = new int[1];
         if (usedTexId == NO_TEXTURE) {
             GLES20.glGenTextures(1, textures, 0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glBindTexture(GL_TEXTURE_2D, textures[0]);
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
 
-            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, img, 0);
+            GLUtils.texImage2D(GL_TEXTURE_2D, 0, img, 0);
         } else {
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, usedTexId);
-            GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, img);
+            GLES20.glBindTexture(GL_TEXTURE_2D, usedTexId);
+            GLUtils.texSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img);
             textures[0] = usedTexId;
         }
         if (recycle) {
@@ -59,26 +65,33 @@ public class OpenGlUtils {
     }
 
     public static int loadTexture(final IntBuffer data, final Size size, final int usedTexId) {
+        int width = size.width;
+        int height = size.height;
+        return loadTexture(data, width, height, usedTexId);
+    }
+
+    public static int loadTexture(final IntBuffer data, int width, int height, final int usedTexId) {
         int textures[] = new int[1];
         if (usedTexId == NO_TEXTURE) {
             GLES20.glGenTextures(1, textures, 0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glBindTexture(GL_TEXTURE_2D, textures[0]);
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+            GLES20.glTexParameterf(GL_TEXTURE_2D,
                     GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, size.width, size.height,
+            GLES20.glTexImage2D(GL_TEXTURE_2D, 0, GLES20.GL_RGBA, width, height,
                     0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, data);
         } else {
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, usedTexId);
-            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, size.width,
-                    size.height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, data);
+            GLES20.glBindTexture(GL_TEXTURE_2D, usedTexId);
+            GLES20.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width,
+                    height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, data);
             textures[0] = usedTexId;
         }
+        Log.i(TAG, "loadTexture: " + textures[0]);
         return textures[0];
     }
 
@@ -137,5 +150,22 @@ public class OpenGlUtils {
     public static float rnd(final float min, final float max) {
         float fRandNum = (float) Math.random();
         return min + (max - min) * fRandNum;
+    }
+
+    public static void copyTexture(int src_id, int dest_id, int width, int height) {
+        int[] fbo = new int[1];
+        GLES20.glGenFramebuffers(1, fbo, 0);
+/// bind the FBO
+        GLES20.glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo[0]);
+/// attach the source texture to the fbo
+        GLES20.glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_2D, src_id, 0);
+/// bind the destination texture
+        GLES20.glBindTexture(GL_TEXTURE_2D, dest_id);
+/// copy from framebuffer (here, the FBO!) to the bound texture
+        GLES20.glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width,height);
+/// unbind the FBO
+        GLES20.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GLES20.glBindTexture(GL_TEXTURE_2D,0);
     }
 }

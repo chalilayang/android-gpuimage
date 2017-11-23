@@ -19,10 +19,13 @@ package jp.co.cyberagent.android.gpuimage;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.PointF;
+import android.hardware.Camera;
 import android.opengl.GLES20;
 
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.LinkedList;
 
 public class GPUImageFilter {
@@ -100,6 +103,7 @@ public class GPUImageFilter {
         mOutputHeight = height;
     }
 
+    protected int textID = OpenGlUtils.NO_TEXTURE;
     public void onDraw(final int textureId, final FloatBuffer cubeBuffer,
                        final FloatBuffer textureBuffer) {
         GLES20.glUseProgram(mGLProgId);
@@ -107,7 +111,7 @@ public class GPUImageFilter {
         if (!mIsInitialized) {
             return;
         }
-
+        textID = textureId;
         cubeBuffer.position(0);
         GLES20.glVertexAttribPointer(mGLAttribPosition, 2, GLES20.GL_FLOAT, false, 0, cubeBuffer);
         GLES20.glEnableVertexAttribArray(mGLAttribPosition);
@@ -274,5 +278,15 @@ public class GPUImageFilter {
     public static String convertStreamToString(java.io.InputStream is) {
         java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
+    }
+
+    protected FilterCallback filterCallback;
+    public void setFilterCallback(FilterCallback callback) {
+        filterCallback = callback;
+    }
+    public interface FilterCallback {
+        IntBuffer getRGBBuffer();
+        int[] getImageSize();
+        byte[] getYUV();
     }
 }

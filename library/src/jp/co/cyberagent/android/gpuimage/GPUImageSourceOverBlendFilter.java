@@ -28,7 +28,7 @@ public class GPUImageSourceOverBlendFilter extends GPUImageTwoInputFilter {
             "   lowp vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);\n" +
             "   lowp vec4 textureColor2 = texture2D(inputImageTexture2, textureCoordinate2);\n" +
             "   \n" +
-            "   gl_FragColor = mix(textureColor, textureColor2, textureColor2.a);\n" +
+            "   gl_FragColor = mix(textureColor, textureColor2, 0.5);\n" +
             " }";
 
     public GPUImageSourceOverBlendFilter() {

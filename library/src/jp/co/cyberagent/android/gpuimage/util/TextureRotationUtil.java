@@ -46,6 +46,14 @@ public class TextureRotationUtil {
             1.0f, 1.0f,
     };
 
+    public static final float[] scale(float factor, float[] textCoordinate) {
+        float[] newCoo = new float[textCoordinate.length];
+        for (int index = 0; index < textCoordinate.length; index ++) {
+            newCoo[index] = (textCoordinate[index] - 0.5f) * factor + 0.5f;
+        }
+        return newCoo;
+    }
+
     private TextureRotationUtil() {
     }
 
